@@ -65,8 +65,8 @@ void shift_image(image im, int c, float v) {
 
 void clamp_image(image im) {
     for (int i = 0; i < im.c * im.h * im.w; ++i) {
-        if (im.data[i] < 0.0) fmax(im.data[i], 0.0);
-        else if (im.data[i] > 1.0) fmin(im.data[i], 1.0);
+        if (im.data[i] < 0.0) im.data[i] = 0.0;
+        else if (im.data[i] > 1.0) im.data[i] = 1.0;
     }
 }
 
@@ -114,49 +114,101 @@ void rgb_to_hsv(image im) {
     }
 }
 
-void hsv_to_rgb(image im) {
-    float h, s, v, c, x, m;
-    float r, g, b;
+void hsv_to_rgb(image im)
+{
+    float h, s, v, c, max, min, r, g, b, h_temp;
+    for (int x = 0; x < im.w; x++) {
+	for (int y = 0; y < im.h; y++) {
+	    h = im.data[x + y*im.w];
+	    s = im.data[x + y*im.w + im.w*im.h];
+	    v = im.data[x + y*im.w + 2*im.w*im.h];
+	    c = s * v;
+	    max = v;
+	    if (v != c) {
+		min = v - c;
+	    }	    	
+	    else {
+	    	min = 0.0;
+	    }
+	    h_temp = h * 6;
+	    if (c == 0) {
+	    	r = v;
+	    	g = v;
+	    	b = v;
+	    }
+	    else if (h_temp > 5 && h_temp < 6) {
+	    	r = max;
+	    	g = min;
+	    	b = ((((h_temp /  6) - 1) * 6 * c) - g) * -1;
+	    }
+	    else if (h_temp == 5) {
+	    	r = max;
+	    	g = min;
+	    	b = max;
+	    }
+            else if (h_temp < 5 && h_temp > 4) {
+	    	g = min;
+	    	r = (h_temp - 4) * c + g;
+	    	b = max;
+	    }
+	    else if (h_temp == 4) {
+	    	r = min;
+	    	g = min;
+	    	b = max;
+	    }
+	    else if (h_temp < 4 && h_temp > 3) {
+	    	r = min;
+	    	g = (((h_temp - 4) * c) - r) * -1;
+	    	b = max;
+	    }
+            else if (h_temp == 3) {
+	    	r = min;
+	    	g = max;
+	    	b = max;
+	    }
+            else if (h_temp < 3 && h_temp > 2) {
+	    	r = min;
+	    	g = max;
+	    	b = ((h_temp - 2) * c) + r;
+	    }
+	    else if (h_temp == 2) {
+	    	r = min;
+	    	g = max;
+	    	b = min;
+	    }
+            else if (h_temp < 2 && h_temp > 1) {
+	    	g = max;
+	    	b = min;
+	    	r = (((h_temp - 2) * c) - b) * -1;
+	    }
+            else if (h_temp == 1) {
+	    	r = max;
+	    	g = max;
+	    	b = min;
+	    }
+             else if (h_temp < 1 && h_temp > 0) {
+	    	r = max;
+	    	b = min;
+	    	g = (h_temp * c) + b;
+	    }
+            else {
+	    	r = max;
+	    	g = min;
+	    	b = min;
+	    }
+	    im.data[x + y*im.w] = r;
+	    im.data[x + y*im.w + im.w*im.h] = g;
+	    im.data[x + y*im.w + 2*im.w*im.h] = b;
+	}
+    }
+}
 
-    for (int y = 0; y < im.h; ++y) {
-        for (int x = 0; x < im.w; ++x) {
-            h = im.data[x + y * im.w];
-            s = im.data[x + y * im.w + im.w * im.h];
-            v = im.data[x + y * im.w + 2 * im.w * im.h];
-
-            c = v * s;
-            x = c * (1 - fabs(fmodf(h * 6, 2) - 1));
-            m = v - c;
-
-            if (h < 1) {
-                r = c;
-                g = x;
-                b = 0;
-            } else if (h < 2) {
-                r = x;
-                g = c;
-                b = 0;
-            } else if (h < 3) {
-                r = 0;
-                g = c;
-                b = x;
-            } else if (h < 4) {
-                r = 0;
-                g = x;
-                b = c;
-            } else if (h < 5) {
-                r = x;
-                g = 0;
-                b = c;
-            } else {
-                r = c;
-                g = 0;
-                b = x;
+void scale_image(image im, int c, float v) {
+    if (c >= 0 && c < im.c) {
+        for (int x = 0; x < im.w; x++) {
+            for (int y = 0; y < im.h; y++) {
+                im.data[x + y * im.w + c * im.w * im.h] *= v;
             }
-
-            im.data[x + y * im.w] = r + m;
-            im.data[x + y * im.w + im.w * im.h] = g + m;
-            im.data[x + y * im.w + 2 * im.w * im.h] = b + m;
         }
     }
 }
